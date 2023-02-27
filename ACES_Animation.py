@@ -47,6 +47,14 @@ def fix_nans(img):
     img[np.isnan(img)] = sm[np.isnan(img)]
     return img
 
+def fixed_imshow(ax, data, **kwargs):
+    im = fixed_imshow(ax, data, **kwargs)
+    w = data.shape[1]
+    h = data.shape[0]
+    path = mp.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
+    im.set_clip_path(path, transform=kwargs.get('transform'))
+
+
 
 target_header = fits.Header.fromstring("""
 NAXIS   =                    2
@@ -203,21 +211,21 @@ def animate(n, nframes=nframes, start=0, fig=None):
     n = start + n0
     if n == 40 or n0 == 0 and start > 40 and start < 240:
         print("Triggered n>=40")
-        ax.imshow(agaldata,
+        fixed_imshow(ax, agaldata,
           norm=simple_norm(agaldata, min_percent=5, max_percent=99.9, stretch='asinh'),
           transform=ax.get_transform(agalwcs),
           cmap=orange_transparent,
                  zorder=5)
     if n == 120 or n0 == 0 and start > 120 and start < 300:
         print("Triggered n>=120")
-        ax.imshow(rgbcmz,
+        fixed_imshow(ax, rgbcmz,
               transform=ax.get_transform(wwcmz),
                   zorder=120,
                  )
 
     if n == 180 or n0 == 0 and start > 180 and start < 300:
         print("Triggered n>=180")
-        ax.imshow(aces7m[0].data,
+        fixed_imshow(ax, aces7m[0].data,
                   norm=simple_norm(aces7m[0].data, stretch='log',
                                    max_percent=99.96, min_percent=1),
                   transform=ax.get_transform(aces7mwcs),
@@ -227,36 +235,36 @@ def animate(n, nframes=nframes, start=0, fig=None):
 
     if n == 240 or n0 == 0 and start > 240:
         print("Triggered n>=240")
-        ax.imshow(aces12m[0].data,
+        fixed_imshow(ax, aces12m[0].data,
                      norm=simple_norm(aces12m[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.05,),
+                                      min_cut=-0.0005, max_cut=0.01,),
                      cmap='gray',
                   transform=ax.get_transform(aces12mwcs),
                   zorder=240
                     )
         aces12m[0].data[aces12m[0].data < 0.05] = np.nan
-        ax.imshow(aces12m[0].data,
+        fixed_imshow(ax, aces12m[0].data,
                      norm=simple_norm(aces12m[0].data, stretch='asinh',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.05,),
+                                      min_cut=0.01,),
                      cmap=transorange,
                   zorder=241,
                   transform=ax.get_transform(aces12mwcs), )
 
-        ax.imshow(sgrb2_269[0].data,
+        fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.05,),
+                                      min_cut=-0.0005, max_cut=0.01,),
                      cmap='gray',
                   transform=ax.get_transform(sgrb2_269wcs),
                   zorder=242,
                     )
         sgrb2_269[0].data[sgrb2_269[0].data < 0.05] = np.nan
-        ax.imshow(sgrb2_269[0].data,
+        fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='asinh',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.05,),
+                                      min_cut=0.01,),
                      cmap=transorange,
                   zorder=243,
                   transform=ax.get_transform(sgrb2_269wcs), )
@@ -281,7 +289,7 @@ if __name__ == "__main__":
     ax = pl.subplot(1,1,1, projection=WCS(target_header),
                     frame_class=EllipticalFrame)
     print("Showing full all-sky image")
-    ax.imshow(rgb_full_scaled)
+    fixed_imshow(ax, rgb_full_scaled)
     ax.axis('off')
 
 
@@ -321,21 +329,34 @@ if __name__ == "__main__":
                                        interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.gif')
 
-#    if True:
+    if False:
         print("Starting segment 6 afresh")
 
         fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
         ax = pl.subplot(1,1,1, projection=WCS(target_header),
                         frame_class=EllipticalFrame)
+        ax.axis('off')
 
         anim_seg6 = functools.partial(animate, start=300, fig=fig)
-        nframes = 240
+        nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg6, frames=nframes, repeat_delay=5000,
-                                       interval=50, cache_frame_data=False)
+                                       interval=150, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif')
 
-        # old version
-        #anim = animation.FuncAnimation(fig, animate, frames=nframes, repeat_delay=5000,
-        #                               fargs={'start': 240},
-        #                               interval=50)
-        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35.gif')
+        anim_seg7 = functools.partial(animate, start=360, fig=fig)
+        nframes = 60
+        anim = animation.FuncAnimation(fig, anim_seg7, frames=nframes, repeat_delay=5000,
+                                       interval=150, cache_frame_data=False)
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif')
+
+        anim_seg8 = functools.partial(animate, start=420, fig=fig)
+        nframes = 60
+        anim = animation.FuncAnimation(fig, anim_seg8, frames=nframes, repeat_delay=5000,
+                                       interval=150, cache_frame_data=False)
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif')
+
+        anim_seg9 = functools.partial(animate, start=480, fig=fig)
+        nframes = 60
+        anim = animation.FuncAnimation(fig, anim_seg9, frames=nframes, repeat_delay=5000,
+                                       interval=150, cache_frame_data=False)
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif')

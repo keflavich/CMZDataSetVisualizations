@@ -48,6 +48,13 @@ def fix_nans(img):
     img[np.isnan(img)] = sm[np.isnan(img)]
     return img
 
+def fixed_imshow(ax, data, **kwargs):
+    im = fixed_imshow(ax, data, **kwargs)
+    w = data.shape[1]
+    h = data.shape[0]
+    path = mp.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
+    im.set_clip_path(path, transform=kwargs.get('transform'))
+
 rgbcmz = np.array(PIL.Image.open('gc_fullres_6.jpg'))[::-1,:,:]
 wwcmz = WCS(fits.Header.fromtextfile('gc_fullres_6.wcs'))
 
@@ -93,15 +100,17 @@ print("Done opening files")
 
 t0 = [time.time()]
 
-def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
+def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, verbose=False):
     ax = fig.gca()
     n0 = n
     n = start + n0
+    if verbose:
+        print(f"Start={start} n={n} n0={n0}")
 
 
     if n == 40 or n0 == 0 and start > 40:
         print("Triggered n=40")
-        ax.imshow(aces7m[0].data,
+        fixed_imshow(ax, aces7m[0].data,
                   norm=simple_norm(aces7m[0].data, stretch='log',
                                    max_percent=99.96, min_percent=1),
                   transform=ax.get_transform(aces7mwcs),
@@ -111,7 +120,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
 
     if n == 100 or n0 == 0 and start > 100:
         print("Triggered n=100")
-        # ax.imshow(aces12m[0].data,
+        # fixed_imshow(ax, aces12m[0].data,
         #              norm=simple_norm(aces12m[0].data, stretch='log',
         #                               min_percent=None, max_percent=None,
         #                               min_cut=-0.0005, max_cut=0.05,),
@@ -120,7 +129,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
         #           zorder=80
         #             )
         # aces12m[0].data[aces12m[0].data < 0.05] = np.nan
-        # ax.imshow(aces12m[0].data,
+        # fixed_imshow(ax, aces12m[0].data,
         #              norm=simple_norm(aces12m[0].data, stretch='asinh',
         #                               min_percent=None, max_percent=99.99,
         #                               min_cut=0.05,),
@@ -128,7 +137,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
         #           zorder=81,
         #           transform=ax.get_transform(aces12mwcs), )
 
-        ax.imshow(sgrb2_269[0].data,
+        fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
                                       min_cut=-0.0005, max_cut=0.05,),
@@ -137,7 +146,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
                   zorder=82,
                     )
         sgrb2_269[0].data[sgrb2_269[0].data < 0.05] = np.nan
-        ax.imshow(sgrb2_269[0].data,
+        fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='asinh',
                                       min_percent=None, max_percent=99.99,
                                       min_cut=0.05,),
@@ -147,7 +156,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
 
     if n == 150 or n0 == 0 and start > 150:
         print("Triggered n=150")
-        #ax.imshow(fh4[0].data,
+        #fixed_imshow(ax, fh4[0].data,
         #             norm=simple_norm(fh4[0].data, stretch='log',
         #                              min_percent=None, max_percent=None,
         #                              min_cut=-0.0005, max_cut=0.05,),
@@ -156,30 +165,30 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
         #          zorder=120,
         #            )
         #fh4[0].data[fh4[0].data < 0.05] = np.nan
-        #ax.imshow(fh4[0].data,
+        #fixed_imshow(ax, fh4[0].data,
         #             norm=simple_norm(fh4[0].data, stretch='asinh',
         #                              min_percent=None, max_percent=99.99,
         #                              min_cut=0.05,),
         #             cmap=transorange,
         #          zorder=121,
         #          transform=ax.get_transform(WCS(fh4[0].header)), )
-        ax.imshow(fh2[0].data,
+        fixed_imshow(ax, fh2[0].data,
                      norm=simple_norm(fh2[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.05,),
+                                      min_cut=-0.0005, max_cut=0.01,),
                      cmap='gray',
                   zorder=122,
                   transform=ax.get_transform(WCS(fh2[0].header)),
                     )
         fh2[0].data[fh2[0].data < 0.05] = np.nan
-        ax.imshow(fh2[0].data,
+        fixed_imshow(ax, fh2[0].data,
                      norm=simple_norm(fh2[0].data, stretch='asinh',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.05,),
+                                      min_cut=0.01,),
                      cmap=transorange,
                   zorder=123,
                   transform=ax.get_transform(WCS(fh2[0].header)), )
-        # ax.imshow(fh3[0].data.squeeze(),
+        # fixed_imshow(ax, fh3[0].data.squeeze(),
         #              norm=simple_norm(fh3[0].data.squeeze(), stretch='log',
         #                               min_percent=None, max_percent=None,
         #                               min_cut=-0.0005, max_cut=0.05,),
@@ -188,7 +197,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None):
         #           transform=ax.get_transform(WCS(fh3[0].header).celestial),
         #             )
         # fh3[0].data[fh3[0].data < 0.05] = np.nan
-        # ax.imshow(fh3[0].data.squeeze(),
+        # fixed_imshow(ax, fh3[0].data.squeeze(),
         #              norm=simple_norm(fh3[0].data.squeeze(), stretch='asinh',
         #                               min_percent=None, max_percent=99.99,
         #                               min_cut=0.05,),
@@ -226,13 +235,13 @@ if __name__ == "__main__":
     print("Making figure")
     fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
     ax = pl.subplot(1,1,1, projection=wwcmz)
-    ax.imshow(rgbcmz, zorder=1)
+    fixed_imshow(ax, rgbcmz, zorder=1)
     ax.axis('off')
 
     print("Beginning animation steps")
 
+    animname = 'cmz_to_sgrb2_zoomier'
     if False:
-        animname = 'cmz_to_sgrb2_zoomier'
 
         anim_seg1 = functools.partial(animate, start=0, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
@@ -240,6 +249,7 @@ if __name__ == "__main__":
                                        interval=50)
         anim.save(f'{animname}_segment1.gif')
 
+    #if True:
         print("Starting segment 2")
         anim_seg2 = functools.partial(animate, start=60, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
