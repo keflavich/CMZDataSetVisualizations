@@ -1,4 +1,5 @@
 # zoom into the CMZ _even more_
+import subprocess
 import numpy as np
 import regions
 from astropy import coordinates
@@ -23,6 +24,8 @@ import astropy.visualization.wcsaxes
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
+import matplotlib
+import matplotlib as mp
 
 
 
@@ -48,11 +51,12 @@ def fix_nans(img):
     return img
 
 def fixed_imshow(ax, data, **kwargs):
-    im = fixed_imshow(ax, data, **kwargs)
-    w = data.shape[1]
-    h = data.shape[0]
-    path = mp.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
-    im.set_clip_path(path, transform=kwargs.get('transform'))
+    im = ax.imshow(data, **kwargs)
+    if kwargs.get('transform'):
+        w = data.shape[1]
+        h = data.shape[0]
+        path = matplotlib.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
+        im.set_clip_path(path, transform=kwargs.get('transform'))
 
 
 
@@ -209,21 +213,29 @@ def animate(n, nframes=nframes, start=0, fig=None):
     ax = fig.gca()
     n0 = n
     n = start + n0
-    if n == 40 or n0 == 0 and start > 40 and start < 240:
+
+    if n0 == 0:
+        print(f"Triggered n0=0 (n={n}, n0={n0}, start={start})")
+        ax.cla()
+        if start < 300:
+            fixed_imshow(ax, rgb_full_scaled, zorder=1)
+        ax.axis('off')
+
+    if (n == 40 and start <= 40) or n0 == 0 and start > 40 and start < 240:
         print("Triggered n>=40")
         fixed_imshow(ax, agaldata,
           norm=simple_norm(agaldata, min_percent=5, max_percent=99.9, stretch='asinh'),
           transform=ax.get_transform(agalwcs),
           cmap=orange_transparent,
                  zorder=5)
-    if n == 120 or n0 == 0 and start > 120 and start < 300:
+    if (n == 120 and start <= 120) or n0 == 0 and start > 120 and start < 300:
         print("Triggered n>=120")
         fixed_imshow(ax, rgbcmz,
               transform=ax.get_transform(wwcmz),
                   zorder=120,
                  )
 
-    if n == 180 or n0 == 0 and start > 180 and start < 300:
+    if (n == 180 and start <= 180) or n0 == 0 and start > 180 and start < 300:
         print("Triggered n>=180")
         fixed_imshow(ax, aces7m[0].data,
                   norm=simple_norm(aces7m[0].data, stretch='log',
@@ -233,38 +245,45 @@ def animate(n, nframes=nframes, start=0, fig=None):
                   zorder=180,
                  )
 
-    if n == 240 or n0 == 0 and start > 240:
+    if (n == 240 and start <= 240) or n0 == 0 and start > 240:
         print("Triggered n>=240")
+
+        aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
+        aces12mwcs = WCS(aces12m[0].header)
+        aces12m[0].data[aces12m[0].data < -0.0005] = 0
+
+        cut = 0.002
         fixed_imshow(ax, aces12m[0].data,
                      norm=simple_norm(aces12m[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.01,),
+                                      min_cut=-0.0005, max_cut=cut*2,),
                      cmap='gray',
                   transform=ax.get_transform(aces12mwcs),
                   zorder=240
                     )
-        aces12m[0].data[aces12m[0].data < 0.05] = np.nan
+        aces12m[0].data[aces12m[0].data < cut] = np.nan
         fixed_imshow(ax, aces12m[0].data,
-                     norm=simple_norm(aces12m[0].data, stretch='asinh',
-                                      min_percent=None, max_percent=99.99,
-                                      min_cut=0.01,),
+                     norm=simple_norm(aces12m[0].data, stretch='log',
+                                      min_percent=None, max_percent=99.999,
+                                      min_cut=cut,),
                      cmap=transorange,
                   zorder=241,
                   transform=ax.get_transform(aces12mwcs), )
 
+        sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2_selfcal_full_TCTE7m_try2_selfcal6_ampphase_deeper_mask1.5mJy.image.tt0.pbcor.fits')
         fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.01,),
+                                      min_cut=-cut, max_cut=cut*2,),
                      cmap='gray',
                   transform=ax.get_transform(sgrb2_269wcs),
                   zorder=242,
                     )
-        sgrb2_269[0].data[sgrb2_269[0].data < 0.05] = np.nan
+        sgrb2_269[0].data[sgrb2_269[0].data < cut] = np.nan
         fixed_imshow(ax, sgrb2_269[0].data,
-                     norm=simple_norm(sgrb2_269[0].data, stretch='asinh',
+                     norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.01,),
+                                      min_cut=cut,),
                      cmap=transorange,
                   zorder=243,
                   transform=ax.get_transform(sgrb2_269wcs), )
@@ -286,6 +305,8 @@ def animate(n, nframes=nframes, start=0, fig=None):
 if __name__ == "__main__":
 
     fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
+    # https://stackoverflow.com/a/15883620/814354
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
     ax = pl.subplot(1,1,1, projection=WCS(target_header),
                     frame_class=EllipticalFrame)
     print("Showing full all-sky image")
@@ -293,7 +314,7 @@ if __name__ == "__main__":
     ax.axis('off')
 
 
-    if False:
+    if True:
         print("Beginning animation steps")
         anim_seg1 = functools.partial(animate, start=0, fig=fig)
         nframes = 60
@@ -329,34 +350,58 @@ if __name__ == "__main__":
                                        interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.gif')
 
-    if False:
         print("Starting segment 6 afresh")
-
-        fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
-        ax = pl.subplot(1,1,1, projection=WCS(target_header),
-                        frame_class=EllipticalFrame)
-        ax.axis('off')
-
         anim_seg6 = functools.partial(animate, start=300, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg6, frames=nframes, repeat_delay=5000,
-                                       interval=150, cache_frame_data=False)
+                                       interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif')
 
         anim_seg7 = functools.partial(animate, start=360, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg7, frames=nframes, repeat_delay=5000,
-                                       interval=150, cache_frame_data=False)
+                                       interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif')
 
         anim_seg8 = functools.partial(animate, start=420, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg8, frames=nframes, repeat_delay=5000,
-                                       interval=150, cache_frame_data=False)
+                                       interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif')
 
         anim_seg9 = functools.partial(animate, start=480, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg9, frames=nframes, repeat_delay=5000,
-                                       interval=150, cache_frame_data=False)
+                                       interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif')
+
+        subprocess.check_call("""
+                              convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif
+                              \( -clone 0 -set delay 200 \) \( -clone 1-299 \) -delete 0-299
+                              \( +clone -set delay 200 \) +swap +delete
+                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif
+                              \( -clone 300-329 \) \( -clone 330 -set delay 200 \) \( -clone 331-359 \) -delete 300-359
+                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif
+                              \( -clone 360-399 \) \( -clone 400 -set delay 200 \) \( -clone 401-419 \) -delete 360-419
+                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif
+                              \( -clone 420-437 \) \( -clone 438 -set delay 200 \) \( -clone 439-479 \) -delete 420-479
+                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif
+                              \( +clone -set delay 500 \) +swap +delete
+                              \( -clone 1--1 -reverse \) -loop 0
+                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
+                              """.split())
+
+"""
+fr=40; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7_withpause.gif
+seg=6; fr=30; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}_withpause.gif
+seg=8; fr=18; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}_withpause.gif
+convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif \
+        \( +clone -set delay 200 \) \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6_withpause.gif \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7_withpause.gif \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8_withpause.gif \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif \
+        \( +clone -set delay 500 \) +swap +delete \
+        \( -clone 0--1 -reverse \) -loop 0 \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
+"""

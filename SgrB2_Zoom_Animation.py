@@ -1,4 +1,5 @@
 # zoom into the CMZ _even more_
+import subprocess
 import numpy as np
 import time
 import regions
@@ -24,6 +25,7 @@ import astropy.visualization.wcsaxes
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
+import matplotlib
 
 
 
@@ -49,11 +51,12 @@ def fix_nans(img):
     return img
 
 def fixed_imshow(ax, data, **kwargs):
-    im = fixed_imshow(ax, data, **kwargs)
-    w = data.shape[1]
-    h = data.shape[0]
-    path = mp.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
-    im.set_clip_path(path, transform=kwargs.get('transform'))
+    im = ax.imshow(data, **kwargs)
+    if kwargs.get('transform'):
+        w = data.shape[1]
+        h = data.shape[0]
+        path = matplotlib.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
+        im.set_clip_path(path, transform=kwargs.get('transform'))
 
 rgbcmz = np.array(PIL.Image.open('gc_fullres_6.jpg'))[::-1,:,:]
 wwcmz = WCS(fits.Header.fromtextfile('gc_fullres_6.wcs'))
@@ -85,16 +88,17 @@ sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2
 sgrb2_269wcs = WCS(sgrb2_269[0].header)
 
 #fh4 = fits.open('/orange/adamginsburg/sgrb2/NB/NB.sgr_b2.M.B3.cont.pb0.1.r0.5.clean500k0.1mjy.pcal2.image.tt0.pbcor.fits')
-fh3 = fits.open('/orange/adamginsburg/sgrb2/2017.1.00114.S/imaging_results/Sgr_B2_DS_B6_uid___A001_X1290_X46_continuum_merged_12M_robust0_selfcal4_finaliter.image.tt0.pbcor.fits')
+#fh3 = fits.open('/orange/adamginsburg/sgrb2/2017.1.00114.S/imaging_results/Sgr_B2_DS_B6_uid___A001_X1290_X46_continuum_merged_12M_robust0_selfcal4_finaliter.image.tt0.pbcor.fits')
 #fh2 = fits.open('/orange/adamginsburg/sgrb2/NB/NB.sgr_b2.N.B3.cont.pb0.1.r0.5.clean500k0.1mjy.pcal2.image.tt0.pbcor.fits')
-fh4 = fits.open('/orange/adamginsburg/sgrb2/NB/final_imaging/sgr_b2.M.B3.cont.r0.5.1m0.05mJy.cal3.short_spacing_model.image.tt0.pbcor.fits')
-fh2 = fits.open('/orange/adamginsburg/sgrb2/NB/final_imaging/sgr_b2.N.B3.cont.r0.5.1m0.05mJy.cal3.short_spacing_model.image.tt0.pbcor.fits')
+#fh4 = fits.open('/orange/adamginsburg/sgrb2/NB/final_imaging/sgr_b2.M.B3.cont.r0.5.1m0.05mJy.cal3.short_spacing_model.image.tt0.pbcor.fits')
+#fh2 = fits.open('/orange/adamginsburg/sgrb2/NB/final_imaging/sgr_b2.N.B3.cont.r0.5.1m0.05mJy.cal3.short_spacing_model.image.tt0.pbcor.fits')
 fh2= fits.open('/orange/adamginsburg/sgrb2/2016.1.00550.S/FITS/SgrB2_B3_NM_mosaic_withshortspacing.fits')
 
 
 
-dy0 = rgbcmz.shape[0]/2
-dx0 = rgbcmz.shape[1]/2
+# make it square
+dy0 = np.max(rgbcmz.shape)/2
+dx0 = np.max(rgbcmz.shape)/2
 
 print("Done opening files")
 
@@ -107,9 +111,15 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
     if verbose:
         print(f"Start={start} n={n} n0={n0}")
 
+    if n0 == 0:
+        print(f"Triggered n0=0 (n={n}, n0={n0}, start={start})")
+        ax.cla()
+        fixed_imshow(ax, rgbcmz, zorder=1)
+        ax.axis('off')
 
-    if n == 40 or n0 == 0 and start > 40:
-        print("Triggered n=40")
+
+    if (n == 40 and start <= 40) or n0 == 0 and start > 40:
+        print(f"Triggered n=40 (n={n}, n0={n0}, start={start})")
         fixed_imshow(ax, aces7m[0].data,
                   norm=simple_norm(aces7m[0].data, stretch='log',
                                    max_percent=99.96, min_percent=1),
@@ -118,8 +128,8 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
                   zorder=40
                  )
 
-    if n == 100 or n0 == 0 and start > 100:
-        print("Triggered n=100")
+    if (n == 100 and start <= 100) or n0 == 0 and start > 100:
+        print(f"Triggered n=100 (n={n}, n0={n0}, start={start})")
         # fixed_imshow(ax, aces12m[0].data,
         #              norm=simple_norm(aces12m[0].data, stretch='log',
         #                               min_percent=None, max_percent=None,
@@ -137,25 +147,28 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         #           zorder=81,
         #           transform=ax.get_transform(aces12mwcs), )
 
+        sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2_selfcal_full_TCTE7m_try2_selfcal6_ampphase_deeper_mask1.5mJy.image.tt0.pbcor.fits')
+
+        cut = 0.002
         fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.05,),
+                                      min_cut=-cut, max_cut=cut*2,),
                      cmap='gray',
                   transform=ax.get_transform(sgrb2_269wcs),
                   zorder=82,
                     )
-        sgrb2_269[0].data[sgrb2_269[0].data < 0.05] = np.nan
+        sgrb2_269[0].data[sgrb2_269[0].data < cut] = np.nan
         fixed_imshow(ax, sgrb2_269[0].data,
-                     norm=simple_norm(sgrb2_269[0].data, stretch='asinh',
+                     norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.05,),
+                                      min_cut=cut,),
                      cmap=transorange,
                   zorder=83,
                   transform=ax.get_transform(sgrb2_269wcs), )
 
-    if n == 150 or n0 == 0 and start > 150:
-        print("Triggered n=150")
+    if (n == 150 and start <= 150) or n0 == 0 and start > 150:
+        print(f"Triggered n=150 (n={n}, n0={n0}, start={start})")
         #fixed_imshow(ax, fh4[0].data,
         #             norm=simple_norm(fh4[0].data, stretch='log',
         #                              min_percent=None, max_percent=None,
@@ -172,19 +185,22 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         #             cmap=transorange,
         #          zorder=121,
         #          transform=ax.get_transform(WCS(fh4[0].header)), )
+        fh2= fits.open('/orange/adamginsburg/sgrb2/2016.1.00550.S/FITS/SgrB2_B3_NM_mosaic_withshortspacing.fits')
+
+        cut = 0.0015
         fixed_imshow(ax, fh2[0].data,
                      norm=simple_norm(fh2[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=0.01,),
+                                      min_cut=-0.0005, max_cut=cut*2,),
                      cmap='gray',
                   zorder=122,
                   transform=ax.get_transform(WCS(fh2[0].header)),
                     )
-        fh2[0].data[fh2[0].data < 0.05] = np.nan
+        fh2[0].data[fh2[0].data < cut] = np.nan
         fixed_imshow(ax, fh2[0].data,
-                     norm=simple_norm(fh2[0].data, stretch='asinh',
+                     norm=simple_norm(fh2[0].data, stretch='log',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=0.01,),
+                                      min_cut=cut,),
                      cmap=transorange,
                   zorder=123,
                   transform=ax.get_transform(WCS(fh2[0].header)), )
@@ -233,15 +249,18 @@ if __name__ == "__main__":
 
 
     print("Making figure")
-    fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
+    fig = pl.figure(figsize=(10, 10), dpi=200, frameon=False)
+    # https://stackoverflow.com/a/15883620/814354
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
+
     ax = pl.subplot(1,1,1, projection=wwcmz)
     fixed_imshow(ax, rgbcmz, zorder=1)
     ax.axis('off')
 
     print("Beginning animation steps")
 
-    animname = 'cmz_to_sgrb2_zoomier'
-    if False:
+    animname = 'cmz_to_sgrb2_zoomier_square'
+    if True:
 
         anim_seg1 = functools.partial(animate, start=0, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
@@ -249,7 +268,7 @@ if __name__ == "__main__":
                                        interval=50)
         anim.save(f'{animname}_segment1.gif')
 
-    #if True:
+    #if False:
         print("Starting segment 2")
         anim_seg2 = functools.partial(animate, start=60, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
@@ -257,6 +276,7 @@ if __name__ == "__main__":
                                        interval=50)
         anim.save(f'{animname}_segment2.gif')
 
+    #if False:
         print("Starting segment 3")
         anim_seg3 = functools.partial(animate, start=120, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
@@ -284,3 +304,7 @@ if __name__ == "__main__":
         anim = animation.FuncAnimation(fig, anim_seg6, frames=nframes, repeat_delay=5000,
                                        interval=50)
         anim.save(f'{animname}_segment6.gif')
+
+        subprocess.check_call("""
+convert cmz_to_sgrb2_zoomier_square_segment[0-9].gif \( -clone 0 -set delay 200 \) \( -clone 1-239 \) \( +clone -set delay 200 \) \( -clone 241-419 \) -delete 0-419  \( +clone -set delay 500 \) +swap +delete \( -clone 1--1 -reverse \) -loop 0 cmz_to_sgrb2_zoomier_combined_square.gif
+""".split())
