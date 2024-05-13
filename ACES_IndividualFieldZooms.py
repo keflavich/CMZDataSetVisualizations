@@ -373,3 +373,46 @@ axins5.coords['glon'].set_ticks_visible(False)
 print("Brick done: Saving")
 pl.savefig("acesMUSTANG_mark_brick.png", bbox_inches='tight', dpi=200)
 print("Brick done: Saved")
+
+
+
+point_brick_in.set_visible(False)
+for pp in mark5:
+    pp.set_visible(False)
+axins5.set_visible(False)
+
+
+
+
+axins6 = zoomed_inset_axes(ax, 5, loc='upper left',
+                        #bbox_to_anchor=[0.18, 0.06, 0.33, 1.05],
+                        bbox_to_anchor=[0.43, 0.26, 0.33, 1.05],
+                        bbox_transform=fig.transFigure,
+                        axes_class=astropy.visualization.wcsaxes.core.WCSAxes,
+                        axes_kwargs=dict(wcs=aces12mwcs[slcs_cloudc]))
+axins6.axis('off')
+mul = cloudc_mask.multiply(aces12m[0].data)
+mul[mul == 0] = np.nan
+axins6.imshow(mul,
+            norm=simple_norm(aces12m[0].data[slcs_cloudc], stretch='asinh',
+                            min_percent=None, max_percent=None,
+                            min_cut=-0.0005, max_cut=0.02,),
+            cmap=mymap2,
+            zorder=150,
+            )
+#axins6.axis(cloudc_mask.bbox.extent)
+mark5 = mark_inset_generic(axins6, ax, cloudc_mask.cutout(aces12m[0].data), loc1=3, loc2=2, edgecolor='c',
+bl=cloudc_bl,
+tr=cloudc_tr,
+br=cloudc_br,
+tl=cloudc_tl,
+)
+point_cloudc_in = cloudc.to_pixel(axins6.wcs).plot(ax=axins6)
+axins6.coords['glat'].set_ticklabel(visible=False)
+axins6.coords['glon'].set_ticklabel(visible=False)
+axins6.coords['glat'].set_ticks_visible(False)
+axins6.coords['glon'].set_ticks_visible(False)
+
+print("cloudc done: Saving")
+pl.savefig("acesMUSTANG_mark_cloudc.png", bbox_inches='tight', dpi=200)
+print("cloudc done: Saved")
