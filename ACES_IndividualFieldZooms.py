@@ -199,12 +199,9 @@ def num_to_nan(x):
     return x
 
 # during debugging, False'd this for Sgr B2, which behaved fine
-if False:
+if True:
 
-    point_sgrb2m = psgrb2m.plot(ax=ax)
-    point_sgrb2n = psgrb2n.plot(ax=ax)
-
-    axins1 = zoomed_inset_axes(ax, 30, loc='upper left', bbox_to_anchor=bbox,
+    axins1 = zoomed_inset_axes(ax, 20, loc='upper left', bbox_to_anchor=bbox,
                             bbox_transform=fig.transFigure,
                             axes_class=astropy.visualization.wcsaxes.core.WCSAxes,
                             axes_kwargs=dict(wcs=aces12mwcs[slcs_sgrb2m])
@@ -217,7 +214,8 @@ if False:
                 cmap=mymap2,
                 )
     #axins1.axis(msgrb2m.bbox.extent)
-    mark1 = mark_inset_generic(axins1, ax, num_to_nan(msgrb2m.cutout(aces12m[0].data)), loc1=4, loc2=1, edgecolor='c')
+    mark1 = mark_inset_generic(axins1, ax, num_to_nan(msgrb2m.cutout(aces12m[0].data)), loc1=3, loc2=1, edgecolor='c')
+    point_sgrb2m = psgrb2m.plot(ax=ax)
     point_sgrb2m_in = sgrb2m.to_pixel(axins1.wcs).plot(ax=axins1)
     axins1.coords['glat'].set_ticklabel(visible=False)
     axins1.coords['glon'].set_ticklabel(visible=False)
@@ -235,7 +233,7 @@ if False:
         pp.set_visible(False)
     axins1.set_visible(False)
 
-    axins2 = zoomed_inset_axes(ax, 30, loc='upper left', bbox_to_anchor=bbox, bbox_transform=fig.transFigure,
+    axins2 = zoomed_inset_axes(ax, 20, loc='upper left', bbox_to_anchor=bbox, bbox_transform=fig.transFigure,
                             axes_class=astropy.visualization.wcsaxes.core.WCSAxes,
                             axes_kwargs=dict(wcs=aces12mwcs[slcs_sgrb2n]))
     axins2.imshow(num_to_nan(msgrb2n.cutout(aces12m[0].data)),
@@ -245,7 +243,8 @@ if False:
                 cmap=mymap2,
                 )
     #axins1.axis(msgrb2n.bbox.extent)
-    mark2 = mark_inset_generic(axins2, ax, msgrb2n.cutout(aces12m[0].data), loc1=4, loc2=1, edgecolor='c')
+    mark2 = mark_inset_generic(axins2, ax, msgrb2n.cutout(aces12m[0].data), loc1=3, loc2=1, edgecolor='c')
+    point_sgrb2n = psgrb2n.plot(ax=ax)
     point_sgrb2n_in = sgrb2n.to_pixel(axins2.wcs).plot(ax=axins2)
     axins2.coords['glat'].set_ticklabel(visible=False)
     axins2.coords['glon'].set_ticklabel(visible=False)
@@ -262,8 +261,8 @@ if False:
     axins2.set_visible(False)
 
 
-    axins3 = zoomed_inset_axes(ax, 15, loc='upper left',
-                            bbox_to_anchor=[0.05, 0, 0.2, 1], bbox_transform=fig.transFigure,
+    axins3 = zoomed_inset_axes(ax, 13, loc='upper left',
+                            bbox_to_anchor=[0.00, 0.03, 0.2, 1], bbox_transform=fig.transFigure,
                             axes_class=astropy.visualization.wcsaxes.core.WCSAxes,
                             axes_kwargs=dict(wcs=aces12mwcs[slcs_merge]))
     axins3.axis('off')
@@ -283,7 +282,7 @@ if False:
     axins3.coords['glon'].set_ticks_visible(False)
     axins3.set_axis_on()
     axins3.set_facecolor((0,0,0,0))
-    for spine in axins4.spines.values():
+    for spine in axins3.spines.values():
         spine.set_color('c')
     axins3.coords.frame.set_color('c')
     axins3.coords.frame.set_linewidth(2)
