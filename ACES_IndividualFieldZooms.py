@@ -16,7 +16,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 from astropy.visualization import simple_norm
 
-from matplotlib.colors import rgb_to_hsv, hsv_to_rgb 
+from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 
 from astropy import coordinates
 from astropy.coordinates import SkyCoord
@@ -53,13 +53,13 @@ def mark_inset_generic(axins, parent_ax, data, loc1=1, loc2=3,
         tl = axins.wcs.pixel_to_world(0, data.shape[0]) # x,y not y,x
     if tr is None:
         tr = axins.wcs.pixel_to_world(data.shape[1], data.shape[0]) # x,y not y,x
-    
+
     fig = parent_ax.get_figure()
-    
+
     #frame = parent_ax.wcs.wcs.radesys.lower()
     #frame = ax.wcs.world_axis_physical_types[0].split(".")[1]
     frame = wcs.utils.wcs_to_celestial_frame(ax.wcs)
-    
+
     blt = bl.transform_to(frame)
     brt = br.transform_to(frame)
     tlt = tl.transform_to(frame)
@@ -67,31 +67,31 @@ def mark_inset_generic(axins, parent_ax, data, loc1=1, loc2=3,
     xys = [parent_ax.wcs.wcs_world2pix([[crd.spherical.lon.deg,
                                          crd.spherical.lat.deg]],0)[0]
            for crd in (trt, tlt, blt, brt, trt)]
-    
+
     markinkwargs = dict(fc='none', ec=edgecolor)
     ppoly = Polygon(xys, fill=False, zorder=polyzorder, **markinkwargs)
     parent_ax.add_patch(ppoly)
-    
+
     corners = parent_ax.transData.inverted().transform(xys)
-    
+
     axcorners = [(1,1), (0,1), (0,0), (1,0)]
     corners = [(crd.spherical.lon.deg, crd.spherical.lat.deg)
                for crd in (trt, tlt, blt, brt)]
-    
+
     if loc1in is None:
         loc1in = loc1
     if loc2in is None:
         loc2in = loc2
-    
+
     con1 = ConnectionPatch(xyA=corners[loc1-1], coordsA=axins.get_transform('world'), axesA=axins,
                            xyB=corners[loc1in-1], coordsB=parent_ax.get_transform('world'), axesB=parent_ax,
                            linestyle='-', color=edgecolor, zorder=zorder1)
     con2 = ConnectionPatch(xyA=corners[loc2-1], coordsA=axins.get_transform('world'), axesA=axins,
                            xyB=corners[loc2in-1], coordsB=parent_ax.get_transform('world'), axesB=parent_ax,
-                           linestyle='-', color=edgecolor, zorder=zorder2)    
+                           linestyle='-', color=edgecolor, zorder=zorder2)
     fig.add_artist(con1)
     fig.add_artist(con2)
-    
+
     return con1, con2, ppoly
 
 aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_mosaic.fits')
@@ -142,10 +142,17 @@ brick = regions.RectangleSkyRegion(
     height=5.9*u.arcmin,
     #angle=58*u.deg
 )
+cloudc = regions.RectangleSkyRegion(
+    coordinates.SkyCoord("17:46:21.4 -28:35:28", frame='fk5', unit=(u.hour, u.deg)).fk5,
+    width=2*u.arcmin,
+    height=2*u.arcmin,
+    #angle=58*u.deg
+)
 sgrb2m.visual['edgecolor'] = 'c'
 sgrb2n.visual['edgecolor'] = 'c'
 sgrb2ds.visual['edgecolor'] = 'c'
 brick.visual['edgecolor'] = 'c'
+cloudc.visual['edgecolor'] = 'c'
 
 psgrb2m = sgrb2m.to_pixel(ax.wcs)
 msgrb2m = psgrb2m.to_mask()
@@ -164,6 +171,8 @@ dsmask = sgrb2ds.to_pixel(ax.wcs).to_mask()
 slcs_ds,_ = dsmask.get_overlap_slices(aces12m[0].data.shape)
 brick_mask = brick.to_pixel(ax.wcs).to_mask()
 slcs_brick,_ = brick_mask.get_overlap_slices(aces12m[0].data.shape)
+cloudc_mask = cloudc.to_pixel(ax.wcs).to_mask()
+slcs_cloudc,_ = cloudc_mask.get_overlap_slices(aces12m[0].data.shape)
 
 
 sgrb2ds_tl = SkyCoord(sgrb2ds.center.ra + sgrb2ds.width / 2 / np.cos(sgrb2ds.center.dec), sgrb2ds.center.dec + sgrb2ds.height / 2, frame='icrs')
@@ -176,6 +185,10 @@ brick_tr = SkyCoord(brick.center.ra - brick.width / 2 / np.cos(brick.center.dec)
 brick_bl = SkyCoord(brick.center.ra + brick.width / 2 / np.cos(brick.center.dec), brick.center.dec - brick.height / 2, frame='icrs')
 brick_br = SkyCoord(brick.center.ra - brick.width / 2 / np.cos(brick.center.dec), brick.center.dec - brick.height / 2, frame='icrs')
 
+cloudc_tl = SkyCoord(cloudc.center.ra + cloudc.width / 2 / np.cos(cloudc.center.dec), cloudc.center.dec + cloudc.height / 2, frame='icrs')
+cloudc_tr = SkyCoord(cloudc.center.ra - cloudc.width / 2 / np.cos(cloudc.center.dec), cloudc.center.dec + cloudc.height / 2, frame='icrs')
+cloudc_bl = SkyCoord(cloudc.center.ra + cloudc.width / 2 / np.cos(cloudc.center.dec), cloudc.center.dec - cloudc.height / 2, frame='icrs')
+cloudc_br = SkyCoord(cloudc.center.ra - cloudc.width / 2 / np.cos(cloudc.center.dec), cloudc.center.dec - cloudc.height / 2, frame='icrs')
 
 
 
@@ -384,7 +397,7 @@ axins5.set_visible(False)
 
 
 
-axins6 = zoomed_inset_axes(ax, 5, loc='upper left',
+axins6 = zoomed_inset_axes(ax, 8, loc='upper left',
                         #bbox_to_anchor=[0.18, 0.06, 0.33, 1.05],
                         bbox_to_anchor=[0.43, 0.26, 0.33, 1.05],
                         bbox_transform=fig.transFigure,
@@ -401,7 +414,7 @@ axins6.imshow(mul,
             zorder=150,
             )
 #axins6.axis(cloudc_mask.bbox.extent)
-mark5 = mark_inset_generic(axins6, ax, cloudc_mask.cutout(aces12m[0].data), loc1=3, loc2=2, edgecolor='c',
+mark5 = mark_inset_generic(axins6, ax, cloudc_mask.cutout(aces12m[0].data), loc1=4, loc2=2, edgecolor='c',
 bl=cloudc_bl,
 tr=cloudc_tr,
 br=cloudc_br,

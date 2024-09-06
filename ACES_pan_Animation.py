@@ -26,6 +26,7 @@ from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib
 import matplotlib as mp
+import matplotlib.colors as mcolors
 
 
 
@@ -70,7 +71,7 @@ sgra = SkyCoord.from_name('Sgr A')
 sgrc = SkyCoord.from_name('Sgr C')
 sgrc = SkyCoord(359.49154*u.deg, -0.09789*u.deg, frame='galactic')
 
-aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
+aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
 ww = aces12mwcs = WCS(aces12m[0].header)
 aces12m[0].data[aces12m[0].data < -0.0005] = 0
 
@@ -85,9 +86,19 @@ dy0 = aces12m[0].data.shape[0]/2
 dx0 = aces12m[0].data.shape[1]/2
 
 
+acesMUSTANGfeather = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic_MUSTANGfeathered.fits')
+acesMUSTANGfeatherwcs = WCS(acesMUSTANGfeather[0].header)
+#acesMUSTANGfeather[0].data[acesMUSTANGfeather[0].data < -0.0005] = 0
+
 sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2_selfcal_full_TCTE7m_try2_selfcal6_ampphase_deeper_mask1.5mJy.image.tt0.pbcor.fits')
 sgrb2_269wcs = WCS(sgrb2_269[0].header)
 
+
+colors1 = pl.cm.gray_r(np.linspace(0., 1, 128))
+colors2 = pl.cm.hot(np.linspace(0, 1, 128))
+
+colors = np.vstack((colors1, colors2))
+grey_hot = mcolors.LinearSegmentedColormap.from_list('grey_hot', colors)
 
 cmap = pl.cm.Oranges
 orange_transparent = cmap(np.arange(cmap.N))
@@ -106,7 +117,7 @@ def animate(n, nframes=nframes, start=0, fig=None):
     # fixed_imshow(ax, sgrb2_269[0].data,
     #              norm=simple_norm(sgrb2_269[0].data, stretch='log',
     #                               min_percent=None, max_percent=None,
-    #                               min_cut=-0.0005, max_cut=0.001,),
+    #                               vmin=-0.0005, vmax=0.001,),
     #              cmap='gray',
     #           transform=ax.get_transform(sgrb2_269wcs),
     #           zorder=242,
@@ -115,7 +126,7 @@ def animate(n, nframes=nframes, start=0, fig=None):
     # fixed_imshow(ax, sgrb2_269[0].data,
     #              norm=simple_norm(sgrb2_269[0].data, stretch='asinh',
     #                               min_percent=None, max_percent=99.999,
-    #                               min_cut=0.001,),
+    #                               vmin=0.001,),
     #              cmap=transorange,
     #           zorder=243,
     #           transform=ax.get_transform(sgrb2_269wcs), )
@@ -146,24 +157,32 @@ if __name__ == "__main__":
                     frame_class=EllipticalFrame)
     print("Showing full all-sky image")
 
-    aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
-    cut = 0.002
-    fixed_imshow(ax, aces12m[0].data,
-                 norm=simple_norm(aces12m[0].data, stretch='log',
-                                  min_percent=None, max_percent=None,
-                                  min_cut=-0.0005, max_cut=cut*5,),
-                 cmap='gray',
-              transform=ax.get_transform(aces12mwcs),
-              zorder=240
+    ax.imshow(acesMUSTANGfeather[0].data,
+                norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                vmin=0.0001, vmax=1.5,),
+                transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                cmap=grey_hot,
+                zorder=180,
                 )
-    aces12m[0].data[aces12m[0].data < cut] = np.nan
-    fixed_imshow(ax, aces12m[0].data,
-                 norm=simple_norm(aces12m[0].data, stretch='log',
-                                  min_percent=None, max_percent=99.995,
-                                  min_cut=cut,),
-                 cmap=transorange,
-              zorder=241,
-              transform=ax.get_transform(aces12mwcs), )
+
+    # aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
+    # cut = 0.002
+    # fixed_imshow(ax, aces12m[0].data,
+    #              norm=simple_norm(aces12m[0].data, stretch='log',
+    #                               min_percent=None, max_percent=None,
+    #                               vmin=-0.0005, vmax=cut*5,),
+    #              cmap='gray',
+    #           transform=ax.get_transform(aces12mwcs),
+    #           zorder=240
+    #             )
+    # aces12m[0].data[aces12m[0].data < cut] = np.nan
+    # fixed_imshow(ax, aces12m[0].data,
+    #              norm=simple_norm(aces12m[0].data, stretch='log',
+    #                               min_percent=None, max_percent=99.995,
+    #                               vmin=cut,),
+    #              cmap=transorange,
+    #           zorder=241,
+    #           transform=ax.get_transform(aces12mwcs), )
 
 
     ax.axis('off')

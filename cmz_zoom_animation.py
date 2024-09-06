@@ -24,6 +24,8 @@ import astropy.visualization.wcsaxes
 from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
+import matplotlib.colors as mcolors
+
 
 
 
@@ -91,6 +93,11 @@ CDELT2  =                 0.05
 CUNIT2  = 'deg     '
 COORDSYS= 'icrs    '
 """, sep='\n')
+
+
+acesMUSTANGfeather = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic_MUSTANGfeathered.fits')
+acesMUSTANGfeatherwcs = WCS(acesMUSTANGfeather[0].header)
+#acesMUSTANGfeather[0].data[acesMUSTANGfeather[0].data < -0.0005] = 0
 
 
 fn_ThermalDust = "COM_CompMap_ThermalDust-commander_2048_R2.00.fits"
@@ -172,12 +179,17 @@ zoomfac = np.geomspace(1, 1/180., nframes)
 dy0 = np.abs(np.diff(ax.get_ylim()))/2
 dx0 = np.abs(np.diff(ax.get_xlim()))/2
 dxdy = [dx0, dy0]
-cx = np.mean(ax.get_xlim()) - 2.6 # zoom in between Sgr A and Sgr B2
+cx = np.mean(ax.get_xlim()) # - 2.6 # zoom in between Sgr A and Sgr B2
 cy = np.mean(ax.get_ylim())
 
 rgbcmz = np.array(PIL.Image.open('gc_fullres_6.jpg'))[::-1,:,:]
 wwcmz = WCS(fits.Header.fromtextfile('gc_fullres_6.wcs'))
 
+colors1 = pl.cm.gray_r(np.linspace(0., 1, 128))
+colors2 = pl.cm.hot(np.linspace(0, 1, 128))
+
+colors = np.vstack((colors1, colors2))
+grey_hot = mcolors.LinearSegmentedColormap.from_list('grey_hot', colors)
 
 atlasgal = fits.open('/orange/adamginsburg/galactic_plane_surveys/atlasgal/MOSAICS/apex_planck.fits')
 lm20,_ = map(int, WCS(atlasgal[0].header).world_to_pixel(SkyCoord(-20*u.deg, 0*u.deg, frame='galactic')))
@@ -198,9 +210,12 @@ def animate(n, nframes=nframes):
           transform=ax.get_transform(WCS(atlasgal[0].header)),
           cmap=transoranges_r, zorder=2)
     if n == 150:
-        ax.imshow(rgbcmz,
-          transform=ax.get_transform(wwcmz),
-                  zorder=3
+        ax.imshow(acesMUSTANGfeather[0].data,
+                  norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                   vmin=0.0001, vmax=1.5,),
+                  transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                  cmap=grey_hot,
+                  zorder=180,
                  )
 
 
@@ -217,3 +232,10 @@ anim = animation.FuncAnimation(fig, animate, frames=nframes, repeat_delay=5000,
 anim.save('zoom_anim_cmz_linear_HI-CO-Dust_m0.35.gif')
 
 subprocess.check_call("""convert zoom_anim_cmz_linear_HI-CO-Dust_m0.35.gif \( -clone 0 -set delay 500 \) \( -clone 1-179 \) -delete 0-179 \( +clone -set delay 500 \) +swap +delete \( -clone 1--1 -reverse \) -loop 0 zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.gif""".split())
+
+subprocess.check_call('ffmpeg -i zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.gif -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.mp4'.split())
+
+"""
+convert zoom_anim_cmz_linear_HI-CO-Dust_m0.35.gif \( -clone 0 -set delay 500 \) \( -clone 1-179 \) -delete 0-179 \( +clone -set delay 500 \) +swap +delete \( -clone 1--1 -reverse \) -loop 0 zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.gif
+ffmpeg -i zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.gif -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" zoom_anim_cmz_linear_HI-CO-Dust_m0.35_withpause.mp4
+"""

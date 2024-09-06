@@ -26,6 +26,7 @@ from matplotlib.colors import rgb_to_hsv, hsv_to_rgb
 from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib
+import matplotlib.colors as mcolors
 
 
 
@@ -43,6 +44,12 @@ import numpy as np
 pl.rcParams['image.interpolation'] = 'none'
 
 print("Done importing")
+
+colors1 = pl.cm.gray_r(np.linspace(0., 1, 128))
+colors2 = pl.cm.hot(np.linspace(0, 1, 128))
+
+colors = np.vstack((colors1, colors2))
+grey_hot = mcolors.LinearSegmentedColormap.from_list('grey_hot', colors)
 
 def fix_nans(img):
     kernel = Gaussian2DKernel(2)
@@ -69,11 +76,11 @@ orange_transparent = ListedColormap(orange_transparent)
 transorange = pl.cm.Oranges.copy()
 transorange.set_under((0,0,0,0))
 
-aces7m = fits.open('/orange/adamginsburg/ACES/mosaics/7m_continuum_mosaic.fits')
-aces7mwcs = WCS(aces7m[0].header)
-aces7m[0].data[aces7m[0].data < -0.0005] = 0
+acesMUSTANGfeather = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic_MUSTANGfeathered.fits')
+acesMUSTANGfeatherwcs = WCS(acesMUSTANGfeather[0].header)
+acesMUSTANGfeather[0].data[acesMUSTANGfeather[0].data < -0.0005] = 0
 
-aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
+aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
 aces12mwcs = WCS(aces12m[0].header)
 aces12m[0].data[aces12m[0].data < -0.0005] = 0
 
@@ -120,10 +127,10 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
 
     if (n == 40 and start <= 40) or n0 == 0 and start > 40:
         print(f"Triggered n=40 (n={n}, n0={n0}, start={start})")
-        fixed_imshow(ax, aces7m[0].data,
-                  norm=simple_norm(aces7m[0].data, stretch='log',
+        fixed_imshow(ax, acesMUSTANGfeather[0].data,
+                  norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
                                    max_percent=99.96, min_percent=1),
-                  transform=ax.get_transform(aces7mwcs),
+                  transform=ax.get_transform(acesMUSTANGfeatherwcs),
                   cmap=orange_transparent,
                   zorder=40
                  )
@@ -133,7 +140,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         # fixed_imshow(ax, aces12m[0].data,
         #              norm=simple_norm(aces12m[0].data, stretch='log',
         #                               min_percent=None, max_percent=None,
-        #                               min_cut=-0.0005, max_cut=0.05,),
+        #                               vmin=-0.0005, vmax=0.05,),
         #              cmap='gray',
         #           transform=ax.get_transform(aces12mwcs),
         #           zorder=80
@@ -142,7 +149,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         # fixed_imshow(ax, aces12m[0].data,
         #              norm=simple_norm(aces12m[0].data, stretch='asinh',
         #                               min_percent=None, max_percent=99.99,
-        #                               min_cut=0.05,),
+        #                               vmin=0.05,),
         #              cmap=transorange,
         #           zorder=81,
         #           transform=ax.get_transform(aces12mwcs), )
@@ -153,7 +160,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-cut, max_cut=cut*2,),
+                                      vmin=-cut, vmax=cut*2,),
                      cmap='gray',
                   transform=ax.get_transform(sgrb2_269wcs),
                   zorder=82,
@@ -162,7 +169,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         fixed_imshow(ax, sgrb2_269[0].data,
                      norm=simple_norm(sgrb2_269[0].data, stretch='log',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=cut,),
+                                      vmin=cut,),
                      cmap=transorange,
                   zorder=83,
                   transform=ax.get_transform(sgrb2_269wcs), )
@@ -172,7 +179,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         #fixed_imshow(ax, fh4[0].data,
         #             norm=simple_norm(fh4[0].data, stretch='log',
         #                              min_percent=None, max_percent=None,
-        #                              min_cut=-0.0005, max_cut=0.05,),
+        #                              vmin=-0.0005, vmax=0.05,),
         #             cmap='gray',
         #          transform=ax.get_transform(WCS(fh4[0].header)),
         #          zorder=120,
@@ -181,7 +188,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         #fixed_imshow(ax, fh4[0].data,
         #             norm=simple_norm(fh4[0].data, stretch='asinh',
         #                              min_percent=None, max_percent=99.99,
-        #                              min_cut=0.05,),
+        #                              vmin=0.05,),
         #             cmap=transorange,
         #          zorder=121,
         #          transform=ax.get_transform(WCS(fh4[0].header)), )
@@ -191,7 +198,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         fixed_imshow(ax, fh2[0].data,
                      norm=simple_norm(fh2[0].data, stretch='log',
                                       min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=cut*2,),
+                                      vmin=-0.0005, vmax=cut*2,),
                      cmap='gray',
                   zorder=122,
                   transform=ax.get_transform(WCS(fh2[0].header)),
@@ -200,14 +207,14 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         fixed_imshow(ax, fh2[0].data,
                      norm=simple_norm(fh2[0].data, stretch='log',
                                       min_percent=None, max_percent=99.99,
-                                      min_cut=cut,),
+                                      vmin=cut,),
                      cmap=transorange,
                   zorder=123,
                   transform=ax.get_transform(WCS(fh2[0].header)), )
         # fixed_imshow(ax, fh3[0].data.squeeze(),
         #              norm=simple_norm(fh3[0].data.squeeze(), stretch='log',
         #                               min_percent=None, max_percent=None,
-        #                               min_cut=-0.0005, max_cut=0.05,),
+        #                               vmin=-0.0005, vmax=0.05,),
         #              cmap='gray',
         #           zorder=124,
         #           transform=ax.get_transform(WCS(fh3[0].header).celestial),
@@ -216,7 +223,7 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
         # fixed_imshow(ax, fh3[0].data.squeeze(),
         #              norm=simple_norm(fh3[0].data.squeeze(), stretch='asinh',
         #                               min_percent=None, max_percent=99.99,
-        #                               min_cut=0.05,),
+        #                               vmin=0.05,),
         #              cmap=transorange,
         #           zorder=125,
         #           transform=ax.get_transform(WCS(fh3[0].header).celestial), )
@@ -237,8 +244,12 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
 
 
 
-
 if __name__ == "__main__":
+
+    acesMUSTANGfeather = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic_MUSTANGfeathered.fits')
+    acesMUSTANGfeatherwcs = WCS(acesMUSTANGfeather[0].header)
+
+
     nframes = 420
     zoomfac = np.hstack([np.geomspace(1, 1/200., 240),
                          np.ones(180, dtype='float')/200.])
@@ -254,7 +265,14 @@ if __name__ == "__main__":
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=None, hspace=None)
 
     ax = pl.subplot(1,1,1, projection=wwcmz)
-    fixed_imshow(ax, rgbcmz, zorder=1)
+    #fixed_imshow(ax, rgbcmz, zorder=1)
+    fixed_imshow(ax, acesMUSTANGfeather[0].data,
+                norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                vmin=0.0001, vmax=1.5,),
+                transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                cmap=grey_hot,
+                zorder=180,
+                )
     ax.axis('off')
 
     print("Beginning animation steps")

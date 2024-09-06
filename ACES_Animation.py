@@ -26,6 +26,8 @@ from matplotlib.colors import ListedColormap
 import matplotlib.animation as animation
 import matplotlib
 import matplotlib as mp
+import matplotlib.colors as mcolors
+
 
 
 
@@ -166,14 +168,16 @@ zoomfac = np.hstack([np.geomspace(1, 1/1920., 300),
 
 sgrb2 = SkyCoord.from_name('Sgr B2')
 sgra = SkyCoord.from_name('Sgr A')
+pistol = SkyCoord.from_name('Pistol Nebula')
 sgrc = SkyCoord.from_name('Sgr C')
 sgrc = SkyCoord(359.49154*u.deg, -0.09789*u.deg, frame='galactic')
 
 # pan
-cx, cy = WCS(target_header).world_to_pixel(sgrb2)
+cx, cy = WCS(target_header).world_to_pixel(pistol)
+cx1, cy1 = WCS(target_header).world_to_pixel(sgrb2)
 cx2, cy2 = WCS(target_header).world_to_pixel(sgrc)
-cxs = np.hstack([np.ones(300)*cx, np.linspace(cx, cx2, 240)])
-cys = np.hstack([np.ones(300)*cy, np.linspace(cy, cy2, 240)])
+cxs = np.hstack([np.ones(240)*cx, np.linspace(cx, cx1, 60), np.linspace(cx1, cx2, 240)])
+cys = np.hstack([np.ones(240)*cy, np.linspace(cy, cy1, 60), np.linspace(cy1, cy2, 240)])
 
 dy0 = rgb_full_scaled.shape[0]/2
 dx0 = rgb_full_scaled.shape[1]/2
@@ -181,11 +185,12 @@ dx0 = rgb_full_scaled.shape[1]/2
 rgbcmz = np.array(PIL.Image.open('gc_fullres_6.jpg'))[::-1,:,:]
 wwcmz = WCS(fits.Header.fromtextfile('gc_fullres_6.wcs'))
 
-aces7m = fits.open('/orange/adamginsburg/ACES/mosaics/7m_continuum_mosaic.fits')
-aces7mwcs = WCS(aces7m[0].header)
-aces7m[0].data[aces7m[0].data < -0.0005] = 0
+acesMUSTANGfeather = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic_MUSTANGfeathered.fits')
+acesMUSTANGfeatherwcs = WCS(acesMUSTANGfeather[0].header)
+acesMUSTANGfeather[0].data[acesMUSTANGfeather[0].data < 0.0001] = 0
+acesMUSTANGfeather[0].data[np.isnan(acesMUSTANGfeather[0].data)] = 0
 
-aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
+aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
 aces12mwcs = WCS(aces12m[0].header)
 aces12m[0].data[aces12m[0].data < -0.0005] = 0
 
@@ -207,6 +212,12 @@ orange_transparent = ListedColormap(orange_transparent)
 
 transorange = pl.cm.Oranges.copy()
 transorange.set_under((0,0,0,0))
+
+colors1 = pl.cm.gray_r(np.linspace(0., 1, 128))
+colors2 = pl.cm.hot(np.linspace(0, 1, 128))
+
+colors = np.vstack((colors1, colors2))
+grey_hot = mcolors.LinearSegmentedColormap.from_list('grey_hot', colors)
 
 
 def animate(n, nframes=nframes, start=0, fig=None):
@@ -230,63 +241,72 @@ def animate(n, nframes=nframes, start=0, fig=None):
                  zorder=5)
     if (n == 120 and start <= 120) or n0 == 0 and start > 120 and start < 300:
         print("Triggered n>=120")
-        fixed_imshow(ax, rgbcmz,
-              transform=ax.get_transform(wwcmz),
-                  zorder=120,
-                 )
+        # skip the 3-color
+        #fixed_imshow(ax, rgbcmz,
+        #      transform=ax.get_transform(wwcmz),
+        #          zorder=120,
+        #         )
 
     if (n == 180 and start <= 180) or n0 == 0 and start > 180 and start < 300:
         print("Triggered n>=180")
-        fixed_imshow(ax, aces7m[0].data,
-                  norm=simple_norm(aces7m[0].data, stretch='log',
-                                   max_percent=99.96, min_percent=1),
-                  transform=ax.get_transform(aces7mwcs),
-                  cmap=orange_transparent,
+        fixed_imshow(ax, acesMUSTANGfeather[0].data,
+                  norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                   vmin=0.0001, vmax=1.5,),
+                  transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                  cmap=grey_hot,
                   zorder=180,
                  )
 
     if (n == 240 and start <= 240) or n0 == 0 and start > 240:
         print("Triggered n>=240")
 
-        aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/12m_continuum_mosaic.fits')
-        aces12mwcs = WCS(aces12m[0].header)
-        aces12m[0].data[aces12m[0].data < -0.0005] = 0
+        fixed_imshow(ax, acesMUSTANGfeather[0].data,
+                  norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                   vmin=0.0001, vmax=1.5,),
+                  transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                  cmap=grey_hot,
+                  zorder=180,
+                 )
 
-        cut = 0.002
-        fixed_imshow(ax, aces12m[0].data,
-                     norm=simple_norm(aces12m[0].data, stretch='log',
-                                      min_percent=None, max_percent=None,
-                                      min_cut=-0.0005, max_cut=cut*2,),
-                     cmap='gray',
-                  transform=ax.get_transform(aces12mwcs),
-                  zorder=240
-                    )
-        aces12m[0].data[aces12m[0].data < cut] = np.nan
-        fixed_imshow(ax, aces12m[0].data,
-                     norm=simple_norm(aces12m[0].data, stretch='log',
-                                      min_percent=None, max_percent=99.999,
-                                      min_cut=cut,),
-                     cmap=transorange,
-                  zorder=241,
-                  transform=ax.get_transform(aces12mwcs), )
+        # aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
+        # aces12mwcs = WCS(aces12m[0].header)
+        # aces12m[0].data[aces12m[0].data < -0.0005] = 0
 
-        sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2_selfcal_full_TCTE7m_try2_selfcal6_ampphase_deeper_mask1.5mJy.image.tt0.pbcor.fits')
-        fixed_imshow(ax, sgrb2_269[0].data,
-                     norm=simple_norm(sgrb2_269[0].data, stretch='log',
-                                      min_percent=None, max_percent=None,
-                                      min_cut=-cut, max_cut=cut*2,),
-                     cmap='gray',
-                  transform=ax.get_transform(sgrb2_269wcs),
-                  zorder=242,
-                    )
-        sgrb2_269[0].data[sgrb2_269[0].data < cut] = np.nan
-        fixed_imshow(ax, sgrb2_269[0].data,
-                     norm=simple_norm(sgrb2_269[0].data, stretch='log',
-                                      min_percent=None, max_percent=99.99,
-                                      min_cut=cut,),
-                     cmap=transorange,
-                  zorder=243,
-                  transform=ax.get_transform(sgrb2_269wcs), )
+        # cut = 0.002
+        # fixed_imshow(ax, aces12m[0].data,
+        #              norm=simple_norm(aces12m[0].data, stretch='log',
+        #                               min_percent=None, max_percent=None,
+        #                               vmin=-0.0005, vmax=cut*2,),
+        #              cmap='gray',
+        #           transform=ax.get_transform(aces12mwcs),
+        #           zorder=240
+        #             )
+        # aces12m[0].data[aces12m[0].data < cut] = np.nan
+        # fixed_imshow(ax, aces12m[0].data,
+        #              norm=simple_norm(aces12m[0].data, stretch='log',
+        #                               min_percent=None, max_percent=99.999,
+        #                               vmin=cut,),
+        #              cmap=transorange,
+        #           zorder=241,
+        #           transform=ax.get_transform(aces12mwcs), )
+
+        # sgrb2_269 = fits.open('/orange/adamginsburg/sgrb2/2013.1.00269.S/continuum/SgrB2_selfcal_full_TCTE7m_try2_selfcal6_ampphase_deeper_mask1.5mJy.image.tt0.pbcor.fits')
+        # fixed_imshow(ax, sgrb2_269[0].data,
+        #              norm=simple_norm(sgrb2_269[0].data, stretch='log',
+        #                               min_percent=None, max_percent=None,
+        #                               vmin=-cut, vmax=cut*2,),
+        #              cmap='gray',
+        #           transform=ax.get_transform(sgrb2_269wcs),
+        #           zorder=242,
+        #             )
+        # sgrb2_269[0].data[sgrb2_269[0].data < cut] = np.nan
+        # fixed_imshow(ax, sgrb2_269[0].data,
+        #              norm=simple_norm(sgrb2_269[0].data, stretch='log',
+        #                               min_percent=None, max_percent=99.99,
+        #                               vmin=cut,),
+        #              cmap=transorange,
+        #           zorder=243,
+        #           transform=ax.get_transform(sgrb2_269wcs), )
 
 
     dy = dy0 * zoomfac[n]
@@ -303,6 +323,9 @@ def animate(n, nframes=nframes, start=0, fig=None):
 
 
 if __name__ == "__main__":
+
+    import os
+    os.chdir('/orange/adamginsburg/cmz/DataSetVisualizations')
 
     fig = pl.figure(figsize=(10,5), dpi=200, frameon=False)
     # https://stackoverflow.com/a/15883620/814354
@@ -375,7 +398,7 @@ if __name__ == "__main__":
                                        interval=50, cache_frame_data=False)
         anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif')
 
-        subprocess.check_call("""
+        subprocess.check_call(r"""
                               convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif
                               \( -clone 0 -set delay 200 \) \( -clone 1-299 \) -delete 0-299
                               \( +clone -set delay 200 \) +swap +delete
@@ -391,11 +414,14 @@ if __name__ == "__main__":
                               zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
                               """.split())
 
+
 """
 fr=40; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7_withpause.gif
 seg=6; fr=30; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}_withpause.gif
 seg=8; fr=18; delay=200; convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}.gif \( -clone 0-$fr \) \( -clone $fr -set delay $delay \) \( -clone $fr-60 \) -delete 0-60 zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment${seg}_withpause.gif
-convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif \
+convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-4].gif \
+        \( +clone -set delay 200 \) \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.gif \
         \( +clone -set delay 200 \) \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6_withpause.gif \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7_withpause.gif \
@@ -404,4 +430,5 @@ convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif \
         \( +clone -set delay 500 \) +swap +delete \
         \( -clone 0--1 -reverse \) -loop 0 \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
+ffmpeg -y -i zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.mp4
 """
