@@ -128,12 +128,12 @@ def animate(n, nframes=0, start=0, fig=None, zoomfac=None, cxs=None, cys=None, v
     if (n == 40 and start <= 40) or n0 == 0 and start > 40:
         print(f"Triggered n=40 (n={n}, n0={n0}, start={start})")
         fixed_imshow(ax, acesMUSTANGfeather[0].data,
-                  norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
-                                   max_percent=99.96, min_percent=1),
-                  transform=ax.get_transform(acesMUSTANGfeatherwcs),
-                  cmap=orange_transparent,
-                  zorder=40
-                 )
+                    norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
+                                    vmin=0.0001, vmax=1.5,),
+                    transform=ax.get_transform(acesMUSTANGfeatherwcs),
+                    cmap=grey_hot,
+                    zorder=40,
+                    )
 
     if (n == 100 and start <= 100) or n0 == 0 and start > 100:
         print(f"Triggered n=100 (n={n}, n0={n0}, start={start})")
@@ -284,7 +284,8 @@ if __name__ == "__main__":
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg1, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment1.gif')
+        #anim.save(f'{animname}_segment1.gif')
+        anim.save(f'{animname}_segment1.mp4')
 
     #if False:
         print("Starting segment 2")
@@ -292,7 +293,8 @@ if __name__ == "__main__":
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg2, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment2.gif')
+        #anim.save(f'{animname}_segment2.gif')
+        anim.save(f'{animname}_segment2.mp4')
 
     #if False:
         print("Starting segment 3")
@@ -300,28 +302,32 @@ if __name__ == "__main__":
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg3, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment3.gif')
+        #anim.save(f'{animname}_segment3.gif')
+        anim.save(f'{animname}_segment3.mp4')
 
         print("Starting segment 4")
         anim_seg4 = functools.partial(animate, start=180, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg4, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment4.gif')
+        #anim.save(f'{animname}_segment4.gif')
+        anim.save(f'{animname}_segment4.mp4')
 
         print("Starting segment 5")
         anim_seg5 = functools.partial(animate, start=240, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg5, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment5.gif')
+        #anim.save(f'{animname}_segment5.gif')
+        anim.save(f'{animname}_segment5.mp4')
 
         print("Starting segment 6")
         anim_seg6 = functools.partial(animate, start=300, fig=fig, zoomfac=zoomfac, cxs=cxs, cys=cys)
         nframes = 120
         anim = animation.FuncAnimation(fig, anim_seg6, frames=nframes, repeat_delay=5000,
                                        interval=50)
-        anim.save(f'{animname}_segment6.gif')
+        #anim.save(f'{animname}_segment6.gif')
+        anim.save(f'{animname}_segment6.mp4')
 
         subprocess.check_call("""
 convert cmz_to_sgrb2_zoomier_square_segment[0-9].gif \( -clone 0 -set delay 200 \) \( -clone 1-239 \) \( +clone -set delay 200 \) \( -clone 241-419 \) -delete 0-419  \( +clone -set delay 500 \) +swap +delete \( -clone 1--1 -reverse \) -loop 0 cmz_to_sgrb2_zoomier_combined_square.gif

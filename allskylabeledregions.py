@@ -279,7 +279,8 @@ saltdiskcoords = {
     'NGC6334': coordinates.SkyCoord.from_name('NGC6334'),
     'G17': coordinates.SkyCoord(17.64*u.deg, 0.16*u.deg, frame='galactic'),
     'G351': coordinates.SkyCoord(351.77*u.deg, -0.51*u.deg, frame='galactic'),
-    'I16547': coordinates.SkyCoord.from_name('IRAS 16547-4247')
+    'I16547': coordinates.SkyCoord.from_name('IRAS 16547-4247'),
+    'SrcI': coordinates.SkyCoord.from_name("Orion Source I"),
 }
 elts = []
 for ii, (name, coord) in enumerate(saltdiskcoords.items()):

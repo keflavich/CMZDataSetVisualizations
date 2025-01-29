@@ -60,6 +60,8 @@ def fixed_imshow(ax, data, **kwargs):
         path = matplotlib.path.Path([[-0.5,-0.5], [w-0.5,-0.5], [w-0.5,h-0.5], [-0.5,h-0.5], [-0.5,-0.5]])
         im.set_clip_path(path, transform=kwargs.get('transform'))
 
+    return im
+
 
 
 target_header = fits.Header.fromstring("""
@@ -153,17 +155,24 @@ if False:
 rgb_full = np.array([simple_norm(img_HI4PI,       min_percent=0.01, max_percent=99.99, log_a=2e1, stretch='log')(img_HI4PI),
                      simple_norm(img_CO21,        min_percent=0.01, max_percent=99.90, log_a=2e1, stretch='log')(img_CO21),
                      simple_norm(img_ThermalDust, min_percent=0.01, max_percent=99.90, log_a=5e2, stretch='log')(img_ThermalDust)]).T.swapaxes(0,1)
+rgb_full[rgb_full > 1] = 1
+rgb_full[rgb_full < 0] = 0
 hsv = rgb_to_hsv(rgb_full)
 hsv[:,:,0] += -0.35  # 0.25 = 90/360
 hsv[:,:,0] = hsv[:,:,0] % 1
 rgb_full_scaled = hsv_to_rgb(hsv)
 rgb_full_scaled[rgb_full_scaled > 1] = 1
 rgb_full_scaled[rgb_full_scaled < 0] = 0
+rgb_full_scaled[np.isnan(rgb_full_scaled)] = 0
+rgb_full_scaled[rgb_full_scaled == 1] = 0.9999
 
-nframes = 540
+nframes = 540 + 120 + 120
 # zoom for 300 frames, then pan
-zoomfac = np.hstack([np.geomspace(1, 1/1920., 300),
-                     np.ones(240, dtype='float')/1920.])
+zoomfac = np.hstack([np.geomspace(1.0, 1/1920., 300),
+                     np.ones(240, dtype='float')/1920.,
+                     np.geomspace(1/1920, 10/1920., 120),
+                     np.geomspace(10/1920, 1.0, 120),
+                     ])
 
 
 sgrb2 = SkyCoord.from_name('Sgr B2')
@@ -176,8 +185,8 @@ sgrc = SkyCoord(359.49154*u.deg, -0.09789*u.deg, frame='galactic')
 cx, cy = WCS(target_header).world_to_pixel(pistol)
 cx1, cy1 = WCS(target_header).world_to_pixel(sgrb2)
 cx2, cy2 = WCS(target_header).world_to_pixel(sgrc)
-cxs = np.hstack([np.ones(240)*cx, np.linspace(cx, cx1, 60), np.linspace(cx1, cx2, 240)])
-cys = np.hstack([np.ones(240)*cy, np.linspace(cy, cy1, 60), np.linspace(cy1, cy2, 240)])
+cxs = np.hstack([np.ones(240)*cx, np.linspace(cx, cx1, 60), np.linspace(cx1, cx2, 240), np.linspace(cx2, cx, 120), np.ones(120)*cx])
+cys = np.hstack([np.ones(240)*cy, np.linspace(cy, cy1, 60), np.linspace(cy1, cy2, 240), np.linspace(cy2, cy, 120), np.ones(120)*cy])
 
 dy0 = rgb_full_scaled.shape[0]/2
 dx0 = rgb_full_scaled.shape[1]/2
@@ -228,6 +237,7 @@ def animate(n, nframes=nframes, start=0, fig=None):
     if n0 == 0:
         print(f"Triggered n0=0 (n={n}, n0={n0}, start={start})")
         ax.cla()
+        ax.set_facecolor('black')
         if start < 300:
             fixed_imshow(ax, rgb_full_scaled, zorder=1)
         ax.axis('off')
@@ -247,8 +257,8 @@ def animate(n, nframes=nframes, start=0, fig=None):
         #          zorder=120,
         #         )
 
-    if (n == 180 and start <= 180) or n0 == 0 and start > 180 and start < 300:
-        print("Triggered n>=180")
+    if (n == 150 and start <= 150) or n0 == 0 and start > 150 and start < 300:
+        print("Triggered n>=150")
         fixed_imshow(ax, acesMUSTANGfeather[0].data,
                   norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
                                    vmin=0.0001, vmax=1.5,),
@@ -260,6 +270,12 @@ def animate(n, nframes=nframes, start=0, fig=None):
     if (n == 240 and start <= 240) or n0 == 0 and start > 240:
         print("Triggered n>=240")
 
+        fixed_imshow(ax, agaldata,
+                     norm=simple_norm(agaldata, min_percent=5, max_percent=99.9, stretch='asinh'),
+                     transform=ax.get_transform(agalwcs),
+                     cmap=orange_transparent,
+                     zorder=5)
+
         fixed_imshow(ax, acesMUSTANGfeather[0].data,
                   norm=simple_norm(acesMUSTANGfeather[0].data, stretch='log',
                                    vmin=0.0001, vmax=1.5,),
@@ -267,6 +283,22 @@ def animate(n, nframes=nframes, start=0, fig=None):
                   cmap=grey_hot,
                   zorder=180,
                  )
+
+    if (n == 690 and start <= 690) or n0 == 0 and start > 690:
+
+        # continue for another 30 frames with ACES in FOV
+        print("Triggered n>=690")
+
+        ax.cla()
+        ax.set_facecolor('white')
+        fixed_imshow(ax, rgb_full_scaled, zorder=1)
+        ax.axis('off')
+        fixed_imshow(ax, agaldata,
+                     norm=simple_norm(agaldata, min_percent=5, max_percent=99.9, stretch='asinh'),
+                     transform=ax.get_transform(agalwcs),
+                     cmap=orange_transparent,
+                     zorder=5)
+
 
         # aces12m = fits.open('/orange/adamginsburg/ACES/mosaics/continuum/12m_continuum_commonbeam_circular_reimaged_mosaic.fits')
         # aces12mwcs = WCS(aces12m[0].header)
@@ -320,8 +352,6 @@ def animate(n, nframes=nframes, start=0, fig=None):
     return fig,
 
 
-
-
 if __name__ == "__main__":
 
     import os
@@ -336,83 +366,108 @@ if __name__ == "__main__":
     fixed_imshow(ax, rgb_full_scaled)
     ax.axis('off')
 
-
     if True:
         print("Beginning animation steps")
         anim_seg1 = functools.partial(animate, start=0, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg1, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment1.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment1.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment1.mp4')
 
         print("Starting segment 2")
         anim_seg2 = functools.partial(animate, start=60, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg2, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment2.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment2.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment2.mp4')
 
         print("Starting segment 3")
         anim_seg3 = functools.partial(animate, start=120, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg3, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment3.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment3.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment3.mp4')
 
         print("Starting segment 4")
         anim_seg4 = functools.partial(animate, start=180, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg4, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment4.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment4.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment4.mp4')
 
         print("Starting segment 5")
         anim_seg5 = functools.partial(animate, start=240, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg5, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment5.mp4')
 
         print("Starting segment 6 afresh")
         anim_seg6 = functools.partial(animate, start=300, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg6, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.mp4')
 
         anim_seg7 = functools.partial(animate, start=360, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg7, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.mp4')
 
         anim_seg8 = functools.partial(animate, start=420, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg8, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.mp4')
 
         anim_seg9 = functools.partial(animate, start=480, fig=fig)
         nframes = 60
         anim = animation.FuncAnimation(fig, anim_seg9, frames=nframes, repeat_delay=5000,
                                        interval=50, cache_frame_data=False)
-        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif')
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.mp4')
 
-        subprocess.check_call(r"""
-                              convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif
-                              \( -clone 0 -set delay 200 \) \( -clone 1-299 \) -delete 0-299
-                              \( +clone -set delay 200 \) +swap +delete
-                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif
-                              \( -clone 300-329 \) \( -clone 330 -set delay 200 \) \( -clone 331-359 \) -delete 300-359
-                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif
-                              \( -clone 360-399 \) \( -clone 400 -set delay 200 \) \( -clone 401-419 \) -delete 360-419
-                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif
-                              \( -clone 420-437 \) \( -clone 438 -set delay 200 \) \( -clone 439-479 \) -delete 420-479
-                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif
-                              \( +clone -set delay 500 \) +swap +delete
-                              \( -clone 1--1 -reverse \) -loop 0
-                              zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
-                              """.split())
+    if True:
+        anim_seg10 = functools.partial(animate, start=540, fig=fig)
+        nframes = 120
+        anim = animation.FuncAnimation(fig, anim_seg10, frames=nframes, repeat_delay=5000,
+                                       interval=50, cache_frame_data=False)
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment10.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment10.mp4')
+
+        anim_seg11 = functools.partial(animate, start=660, fig=fig)
+        nframes = 120
+        anim = animation.FuncAnimation(fig, anim_seg11, frames=nframes, repeat_delay=5000,
+                                       interval=50, cache_frame_data=False)
+        #anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment11.gif')
+        anim.save('zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment11.mp4')
+
+
+        # doesn't work for unknown reasons ("nonzero exit status" is all i get)
+        # subprocess.check_call(r"""
+        #                       convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-5].gif
+        #                       \( -clone 0 -set delay 200 \) \( -clone 1-299 \) -delete 0-299
+        #                       \( +clone -set delay 200 \) +swap +delete
+        #                       zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment6.gif
+        #                       \( -clone 300-329 \) \( -clone 330 -set delay 200 \) \( -clone 331-359 \) -delete 300-359
+        #                       zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7.gif
+        #                       \( -clone 360-399 \) \( -clone 400 -set delay 200 \) \( -clone 401-419 \) -delete 360-419
+        #                       zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8.gif
+        #                       \( -clone 420-437 \) \( -clone 438 -set delay 200 \) \( -clone 439-479 \) -delete 420-479
+        #                       zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif
+        #                       \( +clone -set delay 500 \) +swap +delete
+        #                       \( -clone 1--1 -reverse \) -loop 0
+        #                       zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
+        #                       """.split())
 
 
 """
@@ -427,8 +482,11 @@ convert zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment[0-4].gif \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment7_withpause.gif \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment8_withpause.gif \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment9.gif \
-        \( +clone -set delay 500 \) +swap +delete \
-        \( -clone 0--1 -reverse \) -loop 0 \
+        \( +clone -set delay 200 \) +swap +delete \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment10.gif \
+        \( +clone -set delay 400 \) +swap +delete \
+        zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_segment11.gif \
+        -loop 0 \
         zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif
 ffmpeg -y -i zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.gif -movflags faststart -pix_fmt yuv420p -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2" zoom_anim_cmz_linear_withACES_HI-CO-Dust_m0.35_combined.mp4
 """
